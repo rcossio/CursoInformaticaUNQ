@@ -310,7 +310,34 @@ class DescripcionMedio:
 			medio.agregarComponente(compuesto,self._cantidad[compuesto._name])
 		
 class ReaccionQuimica:
-	def __init__(self,):
+	def __init__(self,reactivos,productos):
+		self._reactivos = reactivos
+		self._productos = productos
+
+	def sePuedeAplicar(self,medio):
+		for reactivo in self._reactivos:
+			if not reactivo in medio._componentes:
+				return False
+			if medio.masaDeCompuesto(reactivo) <= 0.0:
+				return False
+		return True
+
+	def maximoMoles(self,medio):
+		if not self.sePuedeAplicar(medio):
+			return 0.0
+		molesReactivos = []
+                for reactivo in self._reactivos:
+			molesReactivos.append(medio.masaDeCompuesto(reactivo)/reactivo.masaMolar())
+		return max(molesReactivos)
+	
+	def aplicar(self,medio,proporcion):
+		nMoles = proporcion*self.maximoMoles(medio)
+                for reactivo in self._reactivos:
+			medio.agregarComponente(reactivo,-nMoles)
+                for producto in self._productos:
+                        medio.agregarComponente(producto,nMoles)
+
+
 
 #----------------------------------------
 #  1. Clase Elemento
@@ -425,12 +452,12 @@ print 'medioRaro.cantMolesElemento(tabla.elementoS("O")):', medioRaro.cantMolesE
 print 'medioRaro.masaDeElemento(tabla.elementoS("O")):', medioRaro.masaDeElemento(tabla.elementoS("O"))
 print 'medioRaro.proporcionElementoSobreMasa(tabla.elementoS("O")):',medioRaro.proporcionElementoSobreMasa(tabla.elementoS("O"))
 print 'medioRaro.proporcionElementoSobreMasa(tabla.elementoS("H")):',medioRaro.proporcionElementoSobreMasa(tabla.elementoS("H"))
-
+print ''
 
 #---------------------------------------------------
 #   5. Descripcion del medio
 #---------------------------------------------------
-miDescripcion = DescripcionMedio("[H2O][CO2][H2O][CH4]")
+miDescripcion = DescripcionMedio("[H2O][CO2][H2O][CH4][CH4]")
 
 print "miDescripcion.apareceCompuesto(agua):", miDescripcion.apareceCompuesto(agua)
 print "miDescripcion.apareceCompuesto(co2):", miDescripcion.apareceCompuesto(co2)
@@ -451,10 +478,21 @@ print "cambia a ", medioRaro._cantidad[metano]
 print "miDescripcion.agregarAMedio(medioRaro,nh3):", medioRaro._cantidad[nh3],
 miDescripcion.agregarAMedio(medioRaro,nh3)
 print "cambia a ", medioRaro._cantidad[nh3]
+print ''
 
+#------------------------------------------------------
+#    6. Reacciones Quimicas
+#------------------------------------------------------
+hidrogeno = Compuesto('Hidrogeno')
+hidrogeno.autoAgregarAtomos(tabla.elementoS("H"), 2)
+hidrogeno.enlazar("H1", "H2")
+ 
+miReaccion = ReaccionQuimica([hidrogeno],[metano])
+print 'miReaccion.sePuedeAplicar(medioRaro):',miReaccion.sePuedeAplicar(medioRaro)
 
-#-------------------------------------------
-#    6. Reacciones químicas
-#-------------------------------------------
-
-
+miReaccion = ReaccionQuimica([metano],[nh3])
+print 'miReaccion.sePuedeAplicar(medioRaro):',miReaccion.sePuedeAplicar(medioRaro)
+print 'miReaccion.maximoMoles(medioRaro):',miReaccion.maximoMoles(medioRaro)
+print 'miReaccion.aplicar(medioRaro,0.5):', 'metano=',medioRaro._cantidad[metano], 'nh3=',medioRaro._cantidad[nh3],
+miReaccion.aplicar(medioRaro,0.5)
+print 'cambia a metano=',medioRaro._cantidad[metano], 'nh3=',medioRaro._cantidad[nh3]
