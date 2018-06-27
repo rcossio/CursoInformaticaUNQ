@@ -1,4 +1,5 @@
 import sys
+import re
 
 class Elemento:
 	def __init__(self,cantProtones=None,cantNeutrones=None,cantElectrones=None,simbolo=None):
@@ -22,6 +23,10 @@ class Elemento:
                 return self._cantProtones + self._cantNeutrones 
 
         def valencia(self):
+		#Atomo especial
+		if self.simbolo() == 'C':
+			return 4
+
                 _valencia = self._cantProtones
 		for (nivel,orbital) in [(1,'s'),
 					(2,'s'),(2,'p'),
@@ -31,20 +36,26 @@ class Elemento:
 					(6,'s'),(4,'f'),(5,'d'),(6,'p'),
                                         (7,'s'),(5,'f'),(6,'d'),(7,'p'),
                                         (8,'s'),(5,'g'),(6,'f'),(7,'d'),(8,'p')]:
+
 			if orbital == 's':
 				nelec = 2
 			elif orbital == 'p':
-				nelec = 4
+				nelec = 6
 			elif orbital == 'd':
-				nelec == 10
+				nelec = 10
 			elif orbital == 'f':
-				nelec == 14
+				nelec = 14
 			elif orbital == 'g':
-				nelec == 18
+				nelec = 18
 
 			attempt = _valencia - nelec
 			if attempt <= 0:
-				return _valencia
+				if orbital in ['d','f','g']:
+		                        sys.stdout.write('Info. Elemento de transicion o transicion interna.\n')
+
+					return 2
+				else:
+					return _valencia
 			else:
 				_valencia -= nelec
 
@@ -140,9 +151,12 @@ class Compuesto:
                 return listaEnlazados
 
 	def estanEnlazados(self, elem1, elem2):
-               for enlace in self._enlaces:
-			if (elem1 in [self.elementoDe(atomo) for atomo in enlace]) and (elem2 in [self.elementoDe(atomo) for atomo in enlace]):
+                for enlace in self._enlaces:
+			if ( (elem1 == self.elementoDe(enlace[0])) and (elem2 == self.elementoDe(enlace[1]))  ):
 				return True
+                        if ( (elem1 == self.elementoDe(enlace[1])) and (elem2 == self.elementoDe(enlace[0]))  ):
+                                return True
+		return False
 
 
 
@@ -221,7 +235,82 @@ class Compuesto:
                                 lista.append(atomo[0])
                 return lista
 
+
+class Medio:
+	def __init__(self):
+		self._componentes = []
+		self._cantidad = {}
+	def agregarComponente(self,molecula,cantidad):
+		if molecula in self._componentes:
+			self._cantidad[molecula] += cantidad
+		else:
+			self._componentes.append(molecula)
+			self._cantidad[molecula] = cantidad
+
+	def masaTotal(self):
+		masa = 0
+		for molecula in self._componentes:
+			masa += self.masaDeCompuesto(molecula)
+		return masa
+
+	def elementosPresentes(self):
+		elemlist = []
+                for molecula in self._componentes:
+			for elemento in molecula.elementosPresentes():
+				if not elemento.simbolo() in elemlist:
+					elemlist.append(elemento.simbolo())
+		return elemlist
+
+	def compuestosPresentes(self):
+		return [ molecula._name for molecula in self._componentes]
+
+	def masaDeCompuesto(self,molecula):
+		return float(self._cantidad[molecula]*molecula.masaMolar())
+
+	def proporcionCompuestoSobreMasa(self,molecula):
+		return self.masaDeCompuesto(molecula)/self.masaTotal()
+
+	def cantMolesElemento(self,elem):
+		moles=0.0
+                for molecula in self._componentes:
+			moles += self._cantidad[molecula]*len(molecula.atomosDe(elem))
+		return moles
+			
+	def masaDeElemento(self,elem):
+		return self.cantMolesElemento(elem)*elem.pesoAtomico()
+
+        def proporcionElementoSobreMasa(self,elem):
+		return self.masaDeElemento(elem)/self.masaTotal()
+
 	
+class DescripcionMedio:
+	def __init__(self,string):
+		lista = re.findall(r'\[([A-Za-z0-9_]+)\]',string) 
+		self._cantidad = {i:lista.count(i) for i in lista}
+		self._componentes = self._cantidad.keys()
+
+	def apareceCompuesto(self,comp):
+		return comp._name in self._componentes
+
+	def molesCompuesto(self,comp):
+		if self.apareceCompuesto(comp):
+			return self._cantidad[comp._name]
+		else:
+			return 0
+
+	def quienesAparecen(self,listaDeCompuestos):
+		aparecen = []
+		for comp in listaDeCompuestos:
+			if self.apareceCompuesto(comp):
+				aparecen.append(comp)
+		return aparecen
+
+	def agregarAMedio(self,medio, compuesto):
+                if self.apareceCompuesto(compuesto):
+			medio.agregarComponente(compuesto,self._cantidad[compuesto._name])
+		
+class ReaccionQuimica:
+	def __init__(self,):
 
 #----------------------------------------
 #  1. Clase Elemento
@@ -298,7 +387,74 @@ print 'nh3.atomosConEnlacesSobrantes():', nh3.atomosConEnlacesSobrantes()
 print 'nh3.conQuienesEstaEnlazado("H2"):', nh3.conQuienesEstaEnlazado("H2")
 print 'nh3.conQuienesEstaEnlazado("N1"):', nh3.conQuienesEstaEnlazado("N1")
 print 'nh3.estanEnlazados(tabla.elementoS("H"), tabla.elementoS("N")):', nh3.estanEnlazados(tabla.elementoS("H"), tabla.elementoS("N"))
-
-print "ESTO ESTA MAL"
 print 'nh3.estanEnlazados(tabla.elementoS("H"), tabla.elementoS("H")):', nh3.estanEnlazados(tabla.elementoS("H"), tabla.elementoS("H"))
+print ''
+
+#---------------------------------------------
+#   4. Medio
+#---------------------------------------------
+agua = Compuesto('H2O')
+agua.autoAgregarAtomo(tabla.elementoS("O"))
+agua.autoAgregarAtomos(tabla.elementoS("H"), 2)
+agua.enlazarConVarios("O1", ["H2", "H3"])
+
+metano = Compuesto('CH4')
+metano.autoAgregarAtomo(tabla.elementoS("C"))
+metano.autoAgregarAtomos(tabla.elementoS("H"), 4)
+metano.enlazarConVarios("C1", ["H2", "H3","H4","H5"])
+
+co2 = Compuesto('CO2')
+co2.autoAgregarAtomo(tabla.elementoS("C"))
+co2.autoAgregarAtomos(tabla.elementoS("O"), 2)
+co2.enlazarConVarios("C1", ["O2", "O3"])
+
+
+medioRaro = Medio()
+medioRaro.agregarComponente(agua, 100)
+medioRaro.agregarComponente(nh3, 6)
+medioRaro.agregarComponente(metano, 20)
+medioRaro.agregarComponente(co2, 14)
+medioRaro.agregarComponente(nh3, 15)
+print 'medioRaro.masaTotal():',medioRaro.masaTotal()
+print 'medioRaro.elementosPresentes():',medioRaro.elementosPresentes()
+print 'medioRaro.compuestosPresentes():',medioRaro.compuestosPresentes()
+print 'medioRaro.masaDeCompuesto(agua):',medioRaro.masaDeCompuesto(agua)
+print 'medioRaro.masaDeCompuesto(nh3):',medioRaro.masaDeCompuesto(nh3)
+print 'medioRaro.proporcionCompuestoSobreMasa(agua):', medioRaro.proporcionCompuestoSobreMasa(agua)
+print 'medioRaro.cantMolesElemento(tabla.elementoS("O")):', medioRaro.cantMolesElemento(tabla.elementoS("O"))
+print 'medioRaro.masaDeElemento(tabla.elementoS("O")):', medioRaro.masaDeElemento(tabla.elementoS("O"))
+print 'medioRaro.proporcionElementoSobreMasa(tabla.elementoS("O")):',medioRaro.proporcionElementoSobreMasa(tabla.elementoS("O"))
+print 'medioRaro.proporcionElementoSobreMasa(tabla.elementoS("H")):',medioRaro.proporcionElementoSobreMasa(tabla.elementoS("H"))
+
+
+#---------------------------------------------------
+#   5. Descripcion del medio
+#---------------------------------------------------
+miDescripcion = DescripcionMedio("[H2O][CO2][H2O][CH4]")
+
+print "miDescripcion.apareceCompuesto(agua):", miDescripcion.apareceCompuesto(agua)
+print "miDescripcion.apareceCompuesto(co2):", miDescripcion.apareceCompuesto(co2)
+print "miDescripcion.apareceCompuesto(nh3):", miDescripcion.apareceCompuesto(nh3)
+print "miDescripcion.molesCompuesto(agua):", miDescripcion.molesCompuesto(agua)
+print "miDescripcion.molesCompuesto(co2):", miDescripcion.molesCompuesto(co2)
+print "miDescripcion.molesCompuesto(nh3):", miDescripcion.molesCompuesto(nh3)
+print "miDescripcion.quienesAparecen([agua, nh3, metano]):", miDescripcion.quienesAparecen([agua, nh3, metano])
+print "miDescripcion.agregarAMedio(medioRaro,agua):", medioRaro._cantidad[agua],
+miDescripcion.agregarAMedio(medioRaro,agua)
+print "cambia a ", medioRaro._cantidad[agua]
+
+
+print "miDescripcion.agregarAMedio(medioRaro,metano):", medioRaro._cantidad[metano], 
+miDescripcion.agregarAMedio(medioRaro,metano)
+print "cambia a ", medioRaro._cantidad[metano] 
+
+print "miDescripcion.agregarAMedio(medioRaro,nh3):", medioRaro._cantidad[nh3],
+miDescripcion.agregarAMedio(medioRaro,nh3)
+print "cambia a ", medioRaro._cantidad[nh3]
+
+
+#-------------------------------------------
+#    6. Reacciones químicas
+#-------------------------------------------
+
 
