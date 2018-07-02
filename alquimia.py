@@ -98,7 +98,10 @@ class Compuesto:
 		self._name    = name
 		self._atomos  = []
 		self._enlaces = []
-		
+	
+	def name(self):
+		return self._name
+	
 	def agregarAtomo(self,elemento,nombreAtomo):
 		namelist = []
                 for atomoCompuesto in self._atomos:
@@ -240,6 +243,10 @@ class Medio:
 	def __init__(self):
 		self._componentes = []
 		self._cantidad = {}
+
+	def cantidad(self,comp):
+		return self._cantidad[comp]
+	
 	def agregarComponente(self,molecula,cantidad):
 		if molecula in self._componentes:
 			self._cantidad[molecula] += cantidad
@@ -336,7 +343,6 @@ class ReaccionQuimica:
 			medio.agregarComponente(reactivo,-nMoles)
                 for producto in self._productos:
                         medio.agregarComponente(producto,nMoles)
-
 
 '''
 #----------------------------------------
