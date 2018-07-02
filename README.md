@@ -1,3 +1,7 @@
 # Curso Informática UNQ
 
-Nada hecho aún
+Se corren los tests con 
+
+```
+python -m unittest testeo.TestAlquimia
+```
