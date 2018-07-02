@@ -338,7 +338,7 @@ class ReaccionQuimica:
                         medio.agregarComponente(producto,nMoles)
 
 
-
+'''
 #----------------------------------------
 #  1. Clase Elemento
 #----------------------------------------
@@ -496,3 +496,4 @@ print 'miReaccion.maximoMoles(medioRaro):',miReaccion.maximoMoles(medioRaro)
 print 'miReaccion.aplicar(medioRaro,0.5):', 'metano=',medioRaro._cantidad[metano], 'nh3=',medioRaro._cantidad[nh3],
 miReaccion.aplicar(medioRaro,0.5)
 print 'cambia a metano=',medioRaro._cantidad[metano], 'nh3=',medioRaro._cantidad[nh3]
+'''
